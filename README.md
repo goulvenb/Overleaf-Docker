@@ -4,9 +4,7 @@ A simple Overleaf instance running on Docker.
 
 ## Installation
 
-Run `docker-compose up -d`, and then go to [`http://localhost:8085/launchpad`](http://localhost:8085/launchpad).
-
-After that, if you want to install all packages, just run `docker exec -it overleaf tlmgr install scheme-full`
+Run `docker-compose up -d`, and then go to the [`launchpad` page](http://localhost:8085/launchpad).
 
 ## Note
 

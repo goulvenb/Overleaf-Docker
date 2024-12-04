@@ -31,24 +31,31 @@ services:
             REDIS_PORT: 6379
             ENABLED_LINKED_FILE_TYPES: 'project_file,project_output_file'
 
-    overleaf_mongo_manager:
+    overleaf_manager:
         restart: 'no'
         image: docker
-        container_name: overleaf_mongo_manager
+        container_name: overleaf_manager
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - /var/lib/docker:/var/lib/docker
-        links:
+        depends_on:
             - overleaf_mongo
-        command: "
-            docker exec overleaf_mongo sh -c '
-                while ! mongo --eval \"db.version()\" > /dev/null; do
-                    echo \"Waiting for Mongo...\";
-                    sleep 1;
-                done;
-                mongo --eval '\\''rs.initiate({ _id: \"overleaf\", members: [ { _id: 0, host: \"overleaf_mongo:27017\" } ] })'\\'' > /dev/null
-            ';
-            echo \"Done.\"
+            - overleaf
+        command: >
+            /bin/sh -c "
+                echo \"Enabling Sharding on Mongo.\";
+                docker exec overleaf_mongo sh -c '
+                    while ! mongo --eval \"db.version()\" > /dev/null; do
+                        echo \"Waiting for Mongo...\";
+                        sleep 1;
+                    done;
+                    mongo --eval '\\''rs.initiate({ _id: \"overleaf\", members: [ { _id: 0, host: \"overleaf_mongo:27017\" } ] })'\\'' > /dev/null;
+                ';
+                echo \"Sharding on Mongo Enabled.\";
+                sleep 5;
+                echo \"Installing All LaTeX Packages.\";
+                docker exec overleaf tlmgr install scheme-full;
+                echo \"All LaTeX Packages Installed.\";
             "
 
     overleaf_mongo:
