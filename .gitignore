@@ -1,6 +1,3 @@
-data/
-redis/data
-mongo/data
-mongo/config
+/volumes/*
 
 !**/.gitkeep

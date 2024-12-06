@@ -1,7 +1,7 @@
 services:
     overleaf:
         restart: always
-        image: sharelatex/sharelatex
+        build: images/overleaf
         container_name: overleaf
         depends_on:
             overleaf_mongo:
@@ -15,7 +15,7 @@ services:
             - overleaf_redis
         stop_grace_period: 60s
         volumes:
-            - ./data:/var/lib/overleaf
+            - ./volumes/data:/var/lib/overleaf
         environment:
             ENABLE_CONVERSIONS: 'true'
             EMAIL_CONFIRMATION_DISABLED: 'true'
@@ -31,43 +31,16 @@ services:
             REDIS_PORT: 6379
             ENABLED_LINKED_FILE_TYPES: 'project_file,project_output_file'
 
-    overleaf_manager:
-        restart: 'no'
-        image: docker
-        container_name: overleaf_manager
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - /var/lib/docker:/var/lib/docker
-        depends_on:
-            - overleaf_mongo
-            - overleaf
-        command: >
-            /bin/sh -c "
-                echo \"Enabling Sharding on Mongo.\";
-                docker exec overleaf_mongo sh -c '
-                    while ! mongo --eval \"db.version()\" > /dev/null; do
-                        echo \"Waiting for Mongo...\";
-                        sleep 1;
-                    done;
-                    mongo --eval '\\''rs.initiate({ _id: \"overleaf\", members: [ { _id: 0, host: \"overleaf_mongo:27017\" } ] })'\\'' > /dev/null;
-                ';
-                echo \"Sharding on Mongo Enabled.\";
-                sleep 5;
-                echo \"Installing All LaTeX Packages.\";
-                docker exec overleaf tlmgr install scheme-full;
-                echo \"All LaTeX Packages Installed.\";
-            "
-
     overleaf_mongo:
         restart: always
-        image: mongo:5.0
+        build: images/mongo
         container_name: overleaf_mongo
         command: "--replSet overleaf"
         expose:
             - 27017
         volumes:
-            - ./mongo/data:/data/db
-            - ./mongo/config:/data/configdb
+            - ./volumes/mongo/data:/data/db
+            - ./volumes/mongo/config:/data/configdb
         healthcheck:
             test: echo 'db.stats().ok' | mongo localhost:27017/test --quiet
             interval: 10s
@@ -84,4 +57,4 @@ services:
         expose:
             - 6379
         volumes:
-            - ./redis/data:/data
+            - ./volumes/redis/data:/data
